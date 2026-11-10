@@ -14,12 +14,14 @@ protocols (A2A for agent-to-agent messaging), so any compatible agent can talk t
 ```mermaid
 flowchart LR
     App["📱 Mobile app<br/>(Expo)"]
+    Web["🌐 Website<br/>(Next.js :3000)"]
     Orch["🤖 Orchestrator<br/>your personal agent :8789"]
     Reg["📍 Registry<br/>discovery · geofencing :8787"]
     Store["🏪 Store agents<br/>A2A · menu · cart · orders :8788"]
     DB[("🗄️ Postgres + PostGIS")]
     LLM["🧠 LLM<br/>Anthropic"]
 
+    Web -->|"live demo"| Reg
     App -->|"chat from anywhere"| Orch
     App -->|"which agents are near me?"| Reg
     App -->|"chat in the store"| Store
@@ -76,15 +78,17 @@ flowchart TB
 | Repo | What it is | Stack |
 |------|------------|-------|
 | [**WalleBackend**](https://github.com/WalleLabs/WalleBackend) | The server. Registry (discovery, geofencing, "which store am I in?"), store agents (A2A, cart pricing, orders) and the personal-agent orchestrator (threads, tools, approvals). Clean architecture: `domain` → `application` → `infrastructure` → `api`. | Rust, axum, sqlx |
-| [**WalleDockerCompose**](https://github.com/WalleLabs/WalleDockerCompose) | One-command local stack: PostGIS + the backend + a seed job with sample Austin stores. | Docker Compose |
+| [**WalleDockerCompose**](https://github.com/WalleLabs/WalleDockerCompose) | One-command local stack: PostGIS + the backend + the website, plus a seed job with sample Austin stores. | Docker Compose |
 | [**mobile-mono-repo**](https://github.com/WalleLabs/mobile-mono-repo) | The Expo mobile app (Explore map, store chat, orders) plus the original TypeScript prototype of the backend that WalleBackend replaces. | Expo, React Native, TypeScript |
 | [**Docs**](https://github.com/WalleLabs/Docs) | Product, strategy, competitive research, architecture, business plan and pitch deck. Start with the numbered docs in `docs/`. | Markdown |
-| [**Website**](https://github.com/WalleLabs/Website) | The public website. Not started yet. | — |
+| [**Website**](https://github.com/WalleLabs/Website) | The public site, styled like the iOS app: landing page, a live demo that runs on the real registry, and a page for stores. | Next.js 16, TypeScript |
 
 ## Run it locally
 
 ```bash
+# clone the three repos side by side
 git clone https://github.com/WalleLabs/WalleBackend.git
+git clone https://github.com/WalleLabs/Website.git
 git clone https://github.com/WalleLabs/WalleDockerCompose.git
 cd WalleDockerCompose
 cp .env.example .env            # add ANTHROPIC_API_KEY for agent chat
@@ -92,8 +96,9 @@ docker compose up -d --build
 docker compose run --rm seed    # loads 10 sample stores in Austin
 ```
 
-Registry on `:8787`, store agents on `:8788`, orchestrator on `:8789`. Point the mobile app at them and set the
-simulator location to Austin (`30.2687,-97.7428`).
+Website on `:3000`, registry on `:8787`, store agents on `:8788`, orchestrator on `:8789`. Open
+http://localhost:3000/explore for the live demo, or point the mobile app at the services and set the simulator
+location to Austin (`30.2687,-97.7428`).
 
 ## Principles
 
@@ -111,4 +116,5 @@ simulator location to Austin (`30.2687,-97.7428`).
 | Store agents, menu, priced cart, orders | Working |
 | Personal agent + human approval | Working (needs an Anthropic API key) |
 | Mobile app (Explore, chat, orders shell) | Working prototype |
+| Website (landing, live demo, for stores) | Working, not deployed yet |
 | Payments, POS sync, production auth, MCP connections | Planned |
