@@ -11,13 +11,64 @@ protocols (A2A for agent-to-agent messaging), so any compatible agent can talk t
 
 ## How it fits together
 
+```mermaid
+flowchart LR
+    App["📱 Mobile app<br/>(Expo)"]
+    Orch["🤖 Orchestrator<br/>your personal agent :8789"]
+    Reg["📍 Registry<br/>discovery · geofencing :8787"]
+    Store["🏪 Store agents<br/>A2A · menu · cart · orders :8788"]
+    DB[("🗄️ Postgres + PostGIS")]
+    LLM["🧠 LLM<br/>Anthropic"]
+
+    App -->|"chat from anywhere"| Orch
+    App -->|"which agents are near me?"| Reg
+    App -->|"chat in the store"| Store
+    Orch -->|"find places"| Reg
+    Orch -->|"talk / order (A2A)"| Store
+    Orch --> LLM
+    Store --> LLM
+    Reg --> DB
+    Store --> DB
+    Orch --> DB
 ```
- Mobile app ──► Orchestrator (your personal agent) ──► Registry (which agents are near me?)
-      │                    │
-      │                    └──► Store agents (A2A) ──► menu · priced cart · orders
-      └──────────────────────────────────────────────► direct chat at the store
-                                   │
-                              Postgres + PostGIS
+
+### Ordering flow
+
+A personal agent can never spend your money on its own: placing an order always pauses for your approval in the app.
+
+```mermaid
+sequenceDiagram
+    actor You
+    participant App as Mobile app
+    participant O as Orchestrator
+    participant S as Store agent
+    You->>App: "Two lattes from the cafe near me"
+    App->>O: message + location
+    O->>S: build_cart (A2A)
+    S-->>O: priced cart from the store's own menu
+    O-->>App: cart + total
+    You->>App: "Yes, place it"
+    App->>O: message
+    O->>O: policy gate: needs human approval
+    O-->>App: Approve this order?
+    You->>App: Approve
+    App->>O: approve
+    O->>S: place_order (confirmed by user)
+    S->>S: check reach (distance), store open, draft is fresh
+    S-->>O: order confirmed
+    O-->>App: Order placed
+```
+
+### Inside WalleBackend
+
+Dependencies point inward, so controllers never touch SQL and business rules never touch HTTP.
+
+```mermaid
+flowchart TB
+    api["api<br/>axum controllers · composition root"] --> infra["infrastructure<br/>Postgres · Anthropic · A2A client"]
+    infra --> app["application<br/>use cases · ports"]
+    app --> domain["domain<br/>geo · hours · reach · cart · UI blocks"]
+    api --> app
 ```
 
 ## Repositories
